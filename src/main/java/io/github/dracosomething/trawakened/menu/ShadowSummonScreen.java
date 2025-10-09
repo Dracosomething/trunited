@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 public class ShadowSummonScreen extends Screen {
     private final ShadowMonarch skill;
-    private final ManasSkillInstance instance;
     private final Map<String, List<ShadowData>> groupedShadows;
     private final List<String> selectedShadows;
     private final Map<String, Integer> summonQuantities;
@@ -29,14 +28,13 @@ public class ShadowSummonScreen extends Screen {
     
     private Button summonButton;
     private int scrollOffset = 0;
-    private final int maxVisiblePerColumn = 12;
-    private final int columns = 2;
-    private final int maxVisibleTotal = maxVisiblePerColumn * columns;
+    private int maxVisiblePerColumn;
+    private int columns;
+    private int maxVisibleTotal;
 
     public ShadowSummonScreen(ShadowMonarch skill, ManasSkillInstance instance) {
         super(Component.translatable("trawakened.screen.shadow_summon.title"));
         this.skill = skill;
-        this.instance = instance;
         this.selectedShadows = new ArrayList<>();
         this.summonQuantities = new HashMap<>();
         this.sortAscending = new HashMap<>();
@@ -48,7 +46,7 @@ public class ShadowSummonScreen extends Screen {
         CompoundTag storage = skill.getShadowStorage();
         
         for (String key : storage.getAllKeys()) {
-            System.out.println(key);
+            // Debug log removed for production
             CompoundTag shadowData = storage.getCompound(key);
             String entityType = shadowData.getString("entityType");
             String name = shadowData.getString("name");
@@ -61,7 +59,7 @@ public class ShadowSummonScreen extends Screen {
                 }
             }
             
-            ShadowData data = new ShadowData(key, name, ep, entityType);
+            ShadowData data = new ShadowData(key, ep);
             grouped.computeIfAbsent(name, k -> new ArrayList<>()).add(data);
         }
         
@@ -73,13 +71,19 @@ public class ShadowSummonScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+        
+        this.columns = Math.max(1, Math.min(4, this.width / 220));
+        this.maxVisiblePerColumn = Math.max(5, Math.min(12, (this.height - 220) / 22)); // Reduced maximum quantity and increased reserved space
+        this.maxVisibleTotal = maxVisiblePerColumn * columns;
 
         int centerX = this.width / 2;
-        int startY = 60;
-        int buttonWidth = 180;
-        int buttonHeight = 18;
-        int spacing = 20;
-        int columnSpacing = 200;
+        int startY = Math.max(60, this.height / 8);
+        
+        int availableWidth = this.width - 80;
+        int buttonWidth = Math.max(140, Math.min(200, availableWidth / columns - 20));
+        int buttonHeight = Math.max(16, Math.min(20, this.height / 35));
+        int spacing = Math.max(18, buttonHeight + 2);
+        int columnSpacing = Math.max(160, availableWidth / columns);
         
         this.clearWidgets();
         selectedShadows.clear();
@@ -99,7 +103,9 @@ public class ShadowSummonScreen extends Screen {
             int column = displayIndex / maxVisiblePerColumn;
             int row = displayIndex % maxVisiblePerColumn;
             
-            int x = centerX - columnSpacing/2 + (column * columnSpacing) - buttonWidth/2;
+            int totalColumnsWidth = columns * columnSpacing;
+            int startX = centerX - totalColumnsWidth / 2 + columnSpacing / 2;
+            int x = startX + (column * columnSpacing) - buttonWidth / 2;
             int y = startY + row * spacing;
             
             if (shadows.size() == 1) {
@@ -107,7 +113,7 @@ public class ShadowSummonScreen extends Screen {
                 Button shadowButton = new Button(
                     x, y, buttonWidth, buttonHeight,
                     Component.literal(shadowName + " (EP: " + (int)shadow.ep + ")"),
-                    button -> toggleShadowSelection(shadow.key, shadowName)
+                    button -> toggleShadowSelection(shadow.key)
                 );
                 
                 this.addRenderableWidget(shadowButton);
@@ -120,7 +126,8 @@ public class ShadowSummonScreen extends Screen {
                 
                 this.addRenderableWidget(shadowButton);
                 
-                EditBox quantityBox = new EditBox(this.font, x + buttonWidth - 45, y, 20, buttonHeight, Component.empty());
+                EditBox quantityBox = new EditBox(this.font, x + buttonWidth - 45, y, 
+                    Math.max(18, buttonWidth / 9), buttonHeight, Component.empty());
                 quantityBox.setMaxLength(3);
                 quantityBox.setValue(String.valueOf(summonQuantities.getOrDefault(shadowName, 1)));
                 quantityBox.setResponder(text -> {
@@ -134,7 +141,8 @@ public class ShadowSummonScreen extends Screen {
                 this.addRenderableWidget(quantityBox);
                 
                 Button sortButton = new Button(
-                    x + buttonWidth - 20, y, 15, buttonHeight,
+                    x + buttonWidth - Math.max(15, buttonWidth / 12), y, 
+                    Math.max(12, buttonWidth / 15), buttonHeight,
                     Component.literal(sortAscending.getOrDefault(shadowName, true) ? "↑" : "↓"),
                     button -> {
                         boolean ascending = !sortAscending.getOrDefault(shadowName, true);
@@ -148,9 +156,22 @@ public class ShadowSummonScreen extends Screen {
             index++;
         }
         
+        // Define main button variables first
+        int mainButtonWidth = Math.max(80, buttonWidth / 2);
+        int mainButtonHeight = Math.max(18, buttonHeight + 2);
+        int bottomMargin = Math.max(35, this.height / 15); // Further increased bottom margin
+        int buttonSpacing = Math.max(5, mainButtonHeight / 3);
+        int mainButtonY = this.height - bottomMargin - (mainButtonHeight * 2) - buttonSpacing;
+        
+        int navButtonWidth = Math.max(40, buttonWidth / 4);
+        int navButtonHeight = Math.max(16, buttonHeight);
+        
+        int navSpacing = Math.max(20, this.height / 25); // Further increased spacing
+        int navY = mainButtonY - navButtonHeight - navSpacing;
+        
         if (scrollOffset > 0) {
             this.addRenderableWidget(new Button(
-                centerX - 80, startY + maxVisiblePerColumn * spacing + 5, 50, 18,
+                centerX - navButtonWidth - 10, navY, navButtonWidth, navButtonHeight,
                 Component.literal("◀ Prev"),
                 button -> {
                     scrollOffset = Math.max(0, scrollOffset - maxVisibleTotal);
@@ -161,7 +182,7 @@ public class ShadowSummonScreen extends Screen {
         
         if (scrollOffset + maxVisibleTotal < groupedShadows.size()) {
             this.addRenderableWidget(new Button(
-                centerX + 30, startY + maxVisiblePerColumn * spacing + 5, 50, 18,
+                centerX + 10, navY, navButtonWidth, navButtonHeight,
                 Component.literal("Next ▶"),
                 button -> {
                     scrollOffset = Math.min(groupedShadows.size() - maxVisibleTotal, scrollOffset + maxVisibleTotal);
@@ -171,7 +192,7 @@ public class ShadowSummonScreen extends Screen {
         }
         
         summonButton = new Button(
-            centerX - 50, startY + maxVisiblePerColumn * spacing + 30, 100, 22,
+            centerX - mainButtonWidth / 2, mainButtonY, mainButtonWidth, mainButtonHeight,
             Component.translatable("trawakened.screen.shadow_summon.summon"),
             button -> summonSelectedShadows()
         );
@@ -180,7 +201,8 @@ public class ShadowSummonScreen extends Screen {
         this.addRenderableWidget(summonButton);
         
         this.addRenderableWidget(new Button(
-            centerX - 40, startY + maxVisiblePerColumn * spacing + 55, 80, 18,
+            centerX - (mainButtonWidth * 2/3) / 2, mainButtonY + mainButtonHeight + buttonSpacing, 
+            mainButtonWidth * 2/3, mainButtonHeight, // Use the same height as main button
             Component.translatable("gui.cancel"),
             button -> this.onClose()
         ));
@@ -188,7 +210,7 @@ public class ShadowSummonScreen extends Screen {
         updateSummonButton();
     }
 
-    private void toggleShadowSelection(String shadowKey, String shadowName) {
+    private void toggleShadowSelection(String shadowKey) {
         if (selectedShadows.contains(shadowKey)) {
             selectedShadows.remove(shadowKey);
         } else {
@@ -248,20 +270,22 @@ public class ShadowSummonScreen extends Screen {
         
         super.render(poseStack, mouseX, mouseY, partialTick);
         
-        drawCenteredString(poseStack, this.font, this.title, this.width / 2, 30, 0xFFFFFF);
+        drawCenteredString(poseStack, this.font, this.title, this.width / 2, Math.max(20, this.height / 25), 0xFFFFFF);
         
         int totalShadows = groupedShadows.size();
         int currentPage = (scrollOffset / maxVisibleTotal) + 1;
         int totalPages = (int) Math.ceil((double) totalShadows / maxVisibleTotal);
         
+        int subtitleY = Math.max(35, this.height / 18);
+        
         if (totalPages > 1) {
             drawCenteredString(poseStack, this.font, 
                 Component.literal("Page " + currentPage + "/" + totalPages + " (" + totalShadows + " types)"),
-                this.width / 2, 45, 0xAAAAAA);
+                this.width / 2, subtitleY, 0xAAAAAA);
         } else {
             drawCenteredString(poseStack, this.font, 
                 Component.literal(totalShadows + " shadow types"),
-                this.width / 2, 45, 0xAAAAAA);
+                this.width / 2, subtitleY, 0xAAAAAA);
         }
         
         this.renderables.forEach(renderable -> {
@@ -274,23 +298,20 @@ public class ShadowSummonScreen extends Screen {
                 
                 boolean isSelected = false;
                 
-                // Check if this button represents a selected shadow/group
                 for (Map.Entry<String, List<ShadowData>> entry : groupedShadows.entrySet()) {
                     String shadowName = entry.getKey();
                     List<ShadowData> shadows = entry.getValue();
                     
                     if (buttonText.contains(shadowName)) {
-                        // Check if any shadow from this group is selected
                         isSelected = shadows.stream().anyMatch(s -> selectedShadows.contains(s.key));
                         break;
                     }
                 }
                 
                 if (isSelected) {
-                    // Draw green highlight border
                     fill(poseStack, button.x - 2, button.y - 2, 
                          button.x + button.getWidth() + 2, button.y + button.getHeight() + 2, 
-                         0x6600FF00); // Semi-transparent green border
+                         0x6600FF00);
                 }
             }
         });
@@ -303,15 +324,11 @@ public class ShadowSummonScreen extends Screen {
 
     private static class ShadowData {
         final String key;
-        final String name;
         final double ep;
-        final String entityType;
 
-        ShadowData(String key, String name, double ep, String entityType) {
+        ShadowData(String key, double ep) {
             this.key = key;
-            this.name = name;
             this.ep = ep;
-            this.entityType = entityType;
         }
     }
 }

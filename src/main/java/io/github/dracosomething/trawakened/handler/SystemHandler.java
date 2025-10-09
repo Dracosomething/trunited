@@ -1,17 +1,13 @@
 package io.github.dracosomething.trawakened.handler;
 
-import com.github.manasmods.manascore.api.skills.ManasSkill;
 import com.github.manasmods.manascore.api.skills.ManasSkillInstance;
 import com.github.manasmods.manascore.api.skills.SkillAPI;
 import com.github.manasmods.manascore.api.skills.capability.SkillStorage;
-import com.github.manasmods.tensura.ability.SkillUtils;
-import com.github.manasmods.tensura.capability.ep.TensuraEPCapability;
 import com.github.manasmods.tensura.event.SkillPlunderEvent;
 import com.github.manasmods.tensura.event.UpdateEPEvent;
 import com.github.manasmods.tensura.menu.SpatialStorageMenu;
-import com.github.manasmods.tensura.world.TensuraGameRules;
 import io.github.dracosomething.trawakened.ability.skill.unique.SystemSkill;
-import io.github.dracosomething.trawakened.capability.ShadowCapability.AwakenedShadowCapability;
+import io.github.dracosomething.trawakened.ability.skill.ultimate.ShadowMonarch;
 import io.github.dracosomething.trawakened.event.SystemLevelUpEvent;
 import io.github.dracosomething.trawakened.registry.skillRegistry;
 import net.minecraft.nbt.CompoundTag;
@@ -69,6 +65,33 @@ public class SystemHandler {
         }
     }
 
+    private static int getMaxLevel(LivingEntity user) {
+        boolean hasSystemMastery = SkillAPI.getSkillsFrom(user).getSkill(skillRegistry.SYSTEM.get()).isPresent() &&
+                SkillAPI.getSkillsFrom(user).getSkill(skillRegistry.SYSTEM.get()).get().getMastery() >= 1.0;
+        
+        boolean hasShadowMonarch = SkillAPI.getSkillsFrom(user).getSkill(skillRegistry.SHADOW_MONARCH.get()).isPresent();
+        boolean hasShadowMonarchMastery = hasShadowMonarch &&
+                SkillAPI.getSkillsFrom(user).getSkill(skillRegistry.SHADOW_MONARCH.get()).get().getMastery() >= 1.0;
+        
+        boolean isShadowMonarchAwakened = false;
+        if (hasShadowMonarch) {
+            ManasSkillInstance shadowInstance = SkillAPI.getSkillsFrom(user).getSkill(skillRegistry.SHADOW_MONARCH.get()).get();
+            if (shadowInstance.getSkill() instanceof ShadowMonarch skill) {
+                isShadowMonarchAwakened = skill.getData().getBoolean("awakened");
+            }
+        }
+
+        if (isShadowMonarchAwakened) {
+            return 500;
+        } else if (hasShadowMonarchMastery) {
+            return 360;
+        } else if (hasShadowMonarch) {
+            return 240;
+        } else {
+            return 140;
+        }
+    }
+
     @SubscribeEvent
     public static void LevelUpMechanic(UpdateEPEvent event) {
         LivingEntity user = event.getEntity();
@@ -86,9 +109,9 @@ public class SystemHandler {
                 if (!tag.contains("level")) {
                     tag.putInt("level", 1);
                 }
-                if (!tag.contains("maxLevel")) {
-                    tag.putInt("maxLevel", 140);
-                }
+                
+                int maxLevel = getMaxLevel(user);
+                tag.putInt("maxLevel", maxLevel);
                 
                 int epGained = (int) (event.getNewEP() - event.getOldEP());
                 int accumulatedEP = tag.getInt("accumulatedEP") + epGained;
@@ -96,7 +119,7 @@ public class SystemHandler {
                 
                 int nextLevel = tag.getInt("nextLevel");
                 
-                while (accumulatedEP >= nextLevel && tag.getInt("level") < tag.getInt("maxLevel")) {
+                while (accumulatedEP >= nextLevel && tag.getInt("level") < maxLevel) {
                     int oldLevel = tag.getInt("level");
                     tag.putInt("level", tag.getInt("level") + 1);
                     int epForNext = 1000 + 150 * (tag.getInt("level"));

@@ -117,3 +117,12 @@ runs/
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
+
+# Project-specific ignores
+lib/
+github version/
+last version/
+update/
+cfr.jar
+error.txt
+trawakened-*.jar
