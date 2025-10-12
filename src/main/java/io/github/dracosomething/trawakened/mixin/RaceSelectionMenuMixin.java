@@ -1,19 +1,14 @@
 package io.github.dracosomething.trawakened.mixin;
 
 import com.github.manasmods.manascore.api.skills.ManasSkill;
-import com.github.manasmods.manascore.api.skills.ManasSkillInstance;
 import com.github.manasmods.manascore.api.skills.SkillAPI;
 import com.github.manasmods.tensura.ability.SkillUtils;
-import com.github.manasmods.tensura.ability.TensuraSkillInstance;
 import com.github.manasmods.tensura.config.TensuraConfig;
 import com.github.manasmods.tensura.menu.RaceSelectionMenu;
 import com.github.manasmods.tensura.world.TensuraGameRules;
 import com.github.manasmods.tensura.world.savedata.UniqueSkillSaveData;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
-import io.github.dracosomething.trawakened.ability.skill.unique.SystemSkill;
-import io.github.dracosomething.trawakened.config.BackdoorConfig;
-import io.github.dracosomething.trawakened.config.ScarletModeConfig;
 import io.github.dracosomething.trawakened.config.StarterRaceConfig;
 import io.github.dracosomething.trawakened.registry.skillRegistry;
 import net.minecraft.resources.ResourceLocation;
@@ -23,8 +18,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
