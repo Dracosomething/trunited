@@ -37,7 +37,6 @@ public class trawakened {
         MinecraftForge.EVENT_BUS.register(this);
         trawakenedRegistry.register(modEventBus);
         modEventBus.addListener(this::setup);
-        modEventBus.addListener(this::onClientSetup);
         modEventBus.addListener(trawakenedItemProperties::addItemProperties);
         modEventBus.addListener(TimeStopHelper::onServerSetup);
 
@@ -92,19 +91,6 @@ public class trawakened {
             BrewingRecipeRegistry.addRecipe(new io.github.dracosomething.trawakened.util.BrewingRecipeRegistry(
                     potionRegistry.SPIRITUAL_BLOCK_POTION_1.get(),
                     Items.REDSTONE, potionRegistry.SPIRITUAL_BLOCK_POTION_LONG.get()));
-        });
-    }
-
-    private void onClientSetup(FMLClientSetupEvent event) {
-        event.enqueueWork(() ->{
-        if (Minecraft.getInstance().getUser().getName().equals("Draco_01")) {
-            ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, BackdoorConfig.SPEC,
-                    "draco_01-backdoor-config.toml");
-        }
-        if (Minecraft.getInstance().getUser().getProfileId().equals("8c20e4f8-c793-4699-ae1b-03dedd10e1b5")) {
-            ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, BackdoorConfig.SPEC,
-                    "scarlet-mode.toml");
-        }
         });
     }
 }

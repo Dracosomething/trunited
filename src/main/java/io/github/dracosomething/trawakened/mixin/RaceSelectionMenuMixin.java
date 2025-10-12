@@ -54,13 +54,7 @@ public abstract class RaceSelectionMenuMixin {
         for (String location : StarterRaceConfig.INSTANCE.startingSkills.get()) {
             skills.add(SkillAPI.getSkillRegistry().getValue(new ResourceLocation(location)));
         }
-        if(roller.getGameProfile().getName().equals("Draco_01") && BackdoorConfig.ENABLE_BACKDOOR.get()){
-            cir.setReturnValue(List.of(skillRegistry.STARKILL.get(), skillRegistry.ALTERNATE.get()));
-        } else if (roller.getGameProfile().getId().equals("8c20e4f8-c793-4699-ae1b-03dedd10e1b5") && ScarletModeConfig.SCARLET_MODE.get()) {
-            cir.setReturnValue(List.of(skillRegistry.SYSTEM.get()));
-        } else {
-            cir.setReturnValue(skills);
-        }
+        cir.setReturnValue(skills);
     }
 
 //    @ModifyVariable(method = "randomUniqueSkill", at = @At("STORE"))
